@@ -698,9 +698,12 @@ bool TebLocalPlannerROS::pruneGlobalPlan(const geometry_msgs::msg::PoseStamped& 
   {
     // transform robot pose into the plan frame (we do not wait here, since pruning not crucial, if missed a few times)
     //geometry_msgs::msg::TransformStamped global_to_plan_transform = tf_->lookupTransform(global_plan.front().header.frame_id, global_pose.header.frame_id, tf2::timeFromSec(0));
-    geometry_msgs::msg::PoseStamped robot = tf_->transform(
-              global_pose,
-              global_plan.front().header.frame_id);
+    // Latest available transform (see transformGlobalPlan)
+    geometry_msgs::msg::PoseStamped robot;
+    tf2::doTransform(
+      global_pose, robot,
+      tf_->lookupTransform(global_plan.front().header.frame_id, global_pose.header.frame_id,
+                           tf2::TimePointZero));
 
     //robot.setData( global_to_plan_transform * global_pose );
     
@@ -756,10 +759,15 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
     }
 
     // get plan_to_global_transform from plan frame to global_frame
+    // Use the LATEST available plan_frame->global_frame (map->odom) transform instead of
+    // the transform at the exact stamp of the plan. The plan is stamped with now() by the
+    // planner, so it is usually newer than the last map->odom received (MVSim fake
+    // localization or AMCL), and the exact-time lookup failed with "Lookup would require
+    // extrapolation into the future". map->odom varies slowly, so the latest one is valid
+    // (this is also what the Nav2 controllers do).
     geometry_msgs::msg::TransformStamped plan_to_global_transform = tf_->lookupTransform(
-                global_frame, tf2_ros::fromMsg(plan_pose.header.stamp),
-                plan_pose.header.frame_id, tf2::timeFromSec(0),
-                plan_pose.header.frame_id, tf2::durationFromSec(0.5));
+                global_frame, plan_pose.header.frame_id, tf2::TimePointZero,
+                tf2::durationFromSec(cfg_->robot.transform_tolerance));
 
 //    tf_->waitForTransform(global_frame, ros::Time::now(),
 //    plan_pose.header.frame_id, plan_pose.header.stamp,
@@ -769,7 +777,11 @@ bool TebLocalPlannerROS::transformGlobalPlan(const std::vector<geometry_msgs::ms
 //    plan_pose.header.frame_id, plan_to_global_transform);
 
     //let's get the pose of the robot in the frame of the plan
-    geometry_msgs::msg::PoseStamped robot_pose = tf_->transform(global_pose, plan_pose.header.frame_id);
+    geometry_msgs::msg::PoseStamped robot_pose;
+    tf2::doTransform(
+      global_pose, robot_pose,
+      tf_->lookupTransform(plan_pose.header.frame_id, global_pose.header.frame_id,
+                           tf2::TimePointZero));
 
     //we'll discard points on the plan that are outside the local costmap
     double dist_threshold = std::max(costmap.getSizeInCellsX() * costmap.getResolution() / 2.0,
