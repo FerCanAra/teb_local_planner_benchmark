@@ -228,11 +228,6 @@ void TebLocalPlannerROS::initialize(nav2_util::LifecycleNode::SharedPtr node)
     RCLCPP_INFO(logger_, "teb_local_planner has already been initialized, doing nothing.");
   }
 
-  benchmark_params_sub_ =
-      node->create_subscription<benchmark_msg::msg::BenchmarkParams>(
-          "benchmark_params",
-          rclcpp::SystemDefaultsQoS(),
-          std::bind(&TebLocalPlannerROS::pidParamsCB, this, std::placeholders::_1));
 
 }
 void TebLocalPlannerROS::configure(
@@ -1278,22 +1273,6 @@ void TebLocalPlannerROS::customViaPointsCB(const nav_msgs::msg::Path::ConstShare
     via_points_.emplace_back(pose.pose.position.x, pose.pose.position.y);
   }
   custom_via_points_active_ = !via_points_.empty();
-}
-
-void TebLocalPlannerROS::pidParamsCB(
-        const benchmark_msg::msg::BenchmarkParams::ConstSharedPtr msg)
-{
-    // Guardamos los valores recibidos
-    std::lock_guard<std::mutex> lock(pid_params_mutex_);
-    enable_adaptative_ = msg->enable_adaptative;
-    full_payload_      = msg->full_payload;
-    mu_value_          = msg->mu;
-    mu_zone1_          = msg->mu_zone1;
-    mu_zone2_          = msg->mu_zone2;
-    mu_zone3_          = msg->mu_zone3;
-    new_vel_max_       = msg->new_vel_max;
-    new_w_max_         = msg->new_w_max;
-    dist_obst_         = msg->dist_obst;
 }
 
 void TebLocalPlannerROS::activate() {
