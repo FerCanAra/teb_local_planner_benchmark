@@ -59,7 +59,6 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <costmap_converter_msgs/msg/obstacle_msg.hpp>
-#include <benchmark_msg/msg/benchmark_params.hpp>
 
 // transforms
 #include <tf2_ros/transform_listener.h>
@@ -383,8 +382,6 @@ private:
   
   std::vector<geometry_msgs::msg::PoseStamped> global_plan_; //!< Store the current global plan
   
-  // Suscriptor al topic /pid_params
-  rclcpp::Subscription<benchmark_msg::msg::BenchmarkParams>::SharedPtr benchmark_params_sub_;
 
   // Variables para guardar los valores recibidos
   std::mutex pid_params_mutex_;
@@ -398,8 +395,6 @@ private:
   double new_w_max_ = 0.0;
   double dist_obst_ = 0.0;
 
-  // Callback del subscriber
-  void pidParamsCB(const benchmark_msg::msg::BenchmarkParams::ConstSharedPtr msg);
 
   pluginlib::ClassLoader<costmap_converter::BaseCostmapToPolygons> costmap_converter_loader_; //!< Load costmap converter plugins at runtime
   std::shared_ptr<costmap_converter::BaseCostmapToPolygons> costmap_converter_; //!< Store the current costmap_converter  
